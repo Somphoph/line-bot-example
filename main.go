@@ -18,9 +18,11 @@ type lineRequestUtil interface {
 }
 
 var lr lineRequestUtil
+var channelSecret string
 
 func init() {
 	lr = lineRequest{}
+	channelSecret = "6952513badb650d5cf9c14a3c79cd8c8"
 }
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {

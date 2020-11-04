@@ -7,6 +7,13 @@ import (
 	"testing"
 )
 
+type lineRequestMock struct {
+}
+
+func (l lineRequestMock) validateXLineSignature(r *http.Request) bool {
+	return true
+}
+
 func TestHttpPostMsg(t *testing.T) {
 	t.Run("it should return httpCode 200", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/msg", nil)
@@ -14,6 +21,7 @@ func TestHttpPostMsg(t *testing.T) {
 			t.Error(err)
 		}
 		resp := httptest.NewRecorder()
+		lr = lineRequestMock{}
 		handler := http.HandlerFunc(msgHandler)
 		handler.ServeHTTP(resp, req)
 		if status := resp.Code; status != http.StatusOK {
@@ -29,6 +37,7 @@ func TestReplyMsg(t *testing.T) {
 			t.Error(err)
 		}
 		resp := httptest.NewRecorder()
+		lr = lineRequestMock{}
 		handler := http.HandlerFunc(msgHandler)
 		handler.ServeHTTP(resp, req)
 		if status := resp.Code; status != http.StatusOK {
@@ -43,14 +52,15 @@ func TestReplyMsg(t *testing.T) {
 
 	})
 }
+
 func TestValidateXLineSignatureWhenNotFoundInHeader(t *testing.T) {
 	t.Run("it should return false when Not found XLineSignature in header", func(t *testing.T) {
 		req, err := http.NewRequest(http.MethodPost, "/msg", nil)
 		if err != nil {
 			t.Error(err)
 		}
-
-		passed := validateXLineSignature(req)
+		lr = lineRequest{}
+		passed := lr.validateXLineSignature(req)
 		if passed {
 			t.Error("Not found XLineSignature in header should be return false.")
 		}
