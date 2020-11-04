@@ -11,6 +11,17 @@ import (
 	"time"
 )
 
+type lineRequest struct {
+}
+type lineRequestUtil interface {
+	validateXLineSignature(r *http.Request) bool
+}
+
+var lr lineRequestUtil
+
+func init() {
+	lr = lineRequest{}
+}
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		http.NotFound(w, r)
@@ -28,7 +39,8 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if validateXLineSignature(r) {
+
+	if !lr.validateXLineSignature(r) {
 		http.NotFound(w, r)
 		return
 	}
@@ -57,7 +69,7 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
 }
-func validateXLineSignature(r *http.Request) bool {
+func (lr lineRequest) validateXLineSignature(r *http.Request) bool {
 	decoded, err := base64.StdEncoding.DecodeString(r.Header.Get("X-Line-Signature"))
 	if err != nil {
 		return false
