@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/hmac"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -26,7 +28,10 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-
+	if validateXLineSignature(r) {
+		http.NotFound(w, r)
+		return
+	}
 	replyMsg := ReplyMsg{
 		ReplyToken: "",
 		Type:       "message",
@@ -51,6 +56,13 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(js)
+}
+func validateXLineSignature(r *http.Request) bool {
+	decoded, err := base64.StdEncoding.DecodeString(r.Header.Get("X-Line-Signature"))
+	if err != nil {
+		return false
+	}
+	return hmac.Equal(decoded, []byte("6952513badb650d5cf9c14a3c79cd8c8"))
 }
 func main() {
 	http.HandleFunc("/", indexHandler)
