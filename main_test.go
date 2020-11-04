@@ -66,3 +66,18 @@ func TestValidateXLineSignatureWhenNotFoundInHeader(t *testing.T) {
 		}
 	})
 }
+func TestValidateXLineSignatureWhenFoundInHeader(t *testing.T) {
+	t.Run("it should return false when Not found XLineSignature in header", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodPost, "/msg", nil)
+		req.Header.Add("X-Line-Signature", "Test")
+		if err != nil {
+			t.Error(err)
+		}
+		lr = lineRequest{}
+		channelSecret = "Test"
+		passed := lr.validateXLineSignature(req)
+		if passed {
+			t.Error("Not found XLineSignature in header should be return false.")
+		}
+	})
+}

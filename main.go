@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -76,7 +77,8 @@ func (lr lineRequest) validateXLineSignature(r *http.Request) bool {
 	if err != nil {
 		return false
 	}
-	return hmac.Equal(decoded, []byte("6952513badb650d5cf9c14a3c79cd8c8"))
+	hash := hmac.New(sha256.New, []byte(channelSecret))
+	return hmac.Equal(decoded, hash.Sum(nil))
 }
 func main() {
 	http.HandleFunc("/", indexHandler)
