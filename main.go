@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -47,15 +48,21 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	bodyBytes, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Can't read request body.", http.StatusBadRequest)
+	}
+	var webHookEvent WebHookEvent
+	err = json.Unmarshal(bodyBytes, &webHookEvent)
+	if err != nil {
+		http.Error(w, "Can't read request body.", http.StatusBadRequest)
+	}
 	replyMsg := ReplyMsg{
-		ReplyToken: "",
+		ReplyToken: webHookEvent.ReplyToken,
 		Type:       "message",
 		Mode:       "active",
 		Timestamp:  getMillisecondTime(),
-		Source: Source{
-			Type:   "user",
-			UserId: "U4af4980629...",
-		},
+		Source:     webHookEvent.Source,
 		Message: Message{
 			Id:   "325708",
 			Type: "text",
@@ -117,6 +124,12 @@ type Message struct {
 	Id   string `json:"id"`
 	Type string `json:"type"`
 	Text string `json:"text"`
+}
+type Emoji struct {
+	Index     int    `json:"index"`
+	Length    int    `json:"length"`
+	ProductId string `json:"productId"`
+	EmojiId   string `json:emojiId`
 }
 
 type WebHookEvent struct {
