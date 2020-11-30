@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ func (l lineRequestMock) validateXLineSignature(r *http.Request) bool {
 
 func TestHttpPostMsg(t *testing.T) {
 	t.Run("it should return httpCode 200", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPost, "/msg", nil)
+		req, err := http.NewRequest(http.MethodPost, "/msg", strings.NewReader("{}"))
 		if err != nil {
 			t.Error(err)
 		}
@@ -32,7 +33,7 @@ func TestHttpPostMsg(t *testing.T) {
 
 func TestReplyMsg(t *testing.T) {
 	t.Run("it should found ReplyMsg", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPost, "/msg", nil)
+		req, err := http.NewRequest(http.MethodPost, "/msg", strings.NewReader("{}"))
 		if err != nil {
 			t.Error(err)
 		}
@@ -55,7 +56,7 @@ func TestReplyMsg(t *testing.T) {
 
 func TestValidateXLineSignatureWhenNotFoundInHeader(t *testing.T) {
 	t.Run("it should return false when Not found XLineSignature in header", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPost, "/msg", nil)
+		req, err := http.NewRequest(http.MethodPost, "/msg", strings.NewReader("{}"))
 		if err != nil {
 			t.Error(err)
 		}
@@ -68,7 +69,7 @@ func TestValidateXLineSignatureWhenNotFoundInHeader(t *testing.T) {
 }
 func TestValidateXLineSignatureWhenFoundInHeader(t *testing.T) {
 	t.Run("it should return false when Not found XLineSignature in header", func(t *testing.T) {
-		req, err := http.NewRequest(http.MethodPost, "/msg", nil)
+		req, err := http.NewRequest(http.MethodPost, "/msg", strings.NewReader("{}"))
 		req.Header.Add("X-Line-Signature", "Test")
 		if err != nil {
 			t.Error(err)

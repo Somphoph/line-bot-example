@@ -43,9 +43,9 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-
 	if !lr.validateXLineSignature(r) {
-		http.NotFound(w, r)
+		log.Printf(`"message":"XLineSignature validate fail."`)
+		http.Error(w, "XLineSignature validate fail.", http.StatusBadRequest)
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
@@ -69,11 +69,26 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 			Text: "Hello, world! (love)",
 		},
 	}
-
-	js, err := json.Marshal(replyMsg)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	webHookStatus := WebHookStatus{
+		Success:    true,
+		Timestamp:  time.Now().Format(time.RFC3339),
+		StatusCode: 200,
+		Reason:     "OK",
+		Detail:     "200",
+	}
+	var js []byte
+	if len(webHookEvent.Events) > 0 {
+		js, err = json.Marshal(replyMsg)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		js, err = json.Marshal(webHookStatus)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -85,8 +100,10 @@ func (lr lineRequest) validateXLineSignature(r *http.Request) bool {
 		return false
 	}
 	hash := hmac.New(sha256.New, []byte(channelSecret))
+	log.Print("X-Line-Signature : " + string(decoded))
 	return hmac.Equal(decoded, hash.Sum(nil))
 }
+
 func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/msg", msgHandler)
@@ -96,7 +113,7 @@ func main() {
 		log.Printf("Defaulting to port %s", port)
 	}
 
-	log.Printf("Listening on port %s", port)
+	log.Printf(`{"message":"Listening on port %s"}`, port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
 	}
@@ -113,6 +130,13 @@ type ReplyMsg struct {
 	Timestamp  int64   `json:"timestamp"`
 	Source     Source  `json:"source"`
 	Message    Message `json:"message"`
+}
+type WebHookStatus struct {
+	Success    bool   `json:"success"`
+	Timestamp  string `json:"timestamp"`
+	StatusCode int    `json:"statusCode"`
+	Reason     string `json:"reason"`
+	Detail     string `json:"detail"`
 }
 
 type Source struct {
