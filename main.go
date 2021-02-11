@@ -95,15 +95,18 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(js)
 }
 func (lr lineRequest) validateXLineSignature(r *http.Request) bool {
-	decoded, err := base64.StdEncoding.DecodeString(r.Header.Get("X-Line-Signature"))
+	xLineSignature := r.Header.Get("X-Line-Signature")
+	log.Println("xLineSignature : " + xLineSignature)
+	decoded, err := base64.StdEncoding.DecodeString(xLineSignature)
 	if err != nil {
+		log.Fatalln(err)
 		return false
 	}
+	log.Println("Channel Secret : " + channelSecret)
+	log.Println("Decoded : " + string(decoded))
 	hash := hmac.New(sha256.New, []byte(channelSecret))
-	log.Print("X-Line-Signature : " + string(decoded))
 	return hmac.Equal(decoded, hash.Sum(nil))
 }
-
 func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/msg", msgHandler)
