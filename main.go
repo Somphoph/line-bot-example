@@ -16,7 +16,7 @@ import (
 type lineRequest struct {
 }
 type lineRequestUtil interface {
-	validateXLineSignature(r *http.Request) bool
+	validateXLineSignature(xLineSignature string, bytes []byte) bool
 }
 
 var lr lineRequestUtil
@@ -37,32 +37,36 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 func msgHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/msg" {
 		http.NotFound(w, r)
+		log.Printf("URL path not found.")
 		return
 	}
 	if r.Method != "POST" {
 		http.NotFound(w, r)
-		return
-	}
-	if !lr.validateXLineSignature(r) {
-		fmt.Printf(`"message":"XLineSignature validate fail."`)
-		http.Error(w, "XLineSignature validate fail.", http.StatusBadRequest)
+		log.Printf("Http method not support.")
 		return
 	}
 	bodyBytes, err := ioutil.ReadAll(r.Body)
+
+	if !lr.validateXLineSignature(r.Header.Get("X-Line-Signature"), bodyBytes) {
+		http.Error(w, "XLineSignature validate fail.", http.StatusBadRequest)
+		return
+	}
+
 	if err != nil {
 		http.Error(w, "Can't read request body.", http.StatusBadRequest)
 	}
+	log.Printf("Request :" + string(bodyBytes))
 	var webHookEvent WebHookEvent
 	err = json.Unmarshal(bodyBytes, &webHookEvent)
 	if err != nil {
 		http.Error(w, "Can't read request body.", http.StatusBadRequest)
 	}
 	replyMsg := ReplyMsg{
-		ReplyToken: webHookEvent.ReplyToken,
+		ReplyToken: webHookEvent.Events[0].ReplyToken,
 		Type:       "message",
 		Mode:       "active",
 		Timestamp:  getMillisecondTime(),
-		Source:     webHookEvent.Source,
+		Source:     webHookEvent.Events[0].Source,
 		Message: Message{
 			Id:   "325708",
 			Type: "text",
@@ -78,33 +82,36 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	var js []byte
 	if len(webHookEvent.Events) > 0 {
+		log.Printf("Reply message response.")
 		js, err = json.Marshal(replyMsg)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
+		log.Printf("WebHookEvent response.")
 		js, err = json.Marshal(webHookStatus)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
-
 	w.Header().Set("Content-Type", "application/json")
+	log.Printf(string(js))
 	w.Write(js)
 }
-func (lr lineRequest) validateXLineSignature(r *http.Request) bool {
-	xLineSignature := r.Header.Get("X-Line-Signature")
-	log.Println("xLineSignature : " + xLineSignature)
+func (lr lineRequest) validateXLineSignature(xLineSignature string, body []byte) bool {
 	decoded, err := base64.StdEncoding.DecodeString(xLineSignature)
 	if err != nil {
-		log.Fatalln(err)
 		return false
 	}
-	log.Println("Channel Secret : " + channelSecret)
-	log.Println("Decoded : " + string(decoded))
 	hash := hmac.New(sha256.New, []byte(channelSecret))
+
+	_, err = hash.Write(body)
+	if err != nil {
+		return false
+	}
+
 	return hmac.Equal(decoded, hash.Sum(nil))
 }
 func main() {
@@ -127,7 +134,7 @@ func getMillisecondTime() int64 {
 }
 
 type ReplyMsg struct {
-	ReplyToken string  `json:"replayToken"`
+	ReplyToken string  `json:"replyToken"`
 	Type       string  `json:"type"`
 	Mode       string  `json:"mode"`
 	Timestamp  int64   `json:"timestamp"`
@@ -160,13 +167,8 @@ type Emoji struct {
 }
 
 type WebHookEvent struct {
-	Destination string
-	Events      []Event
-	ReplyToken  string `json:"replyToken"`
-	Type        string `json:"type"`
-	Mode        string `json:"mode"`
-	Timestamp   int64  `json:"timestamp"`
-	Source      Source `json:"source"`
+	Destination string  `json:"destination"`
+	Events      []Event `json:"events"`
 }
 type Event struct {
 	ReplyToken string  `json:"replyToken"`
