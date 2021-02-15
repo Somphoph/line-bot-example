@@ -24,7 +24,7 @@ var channelSecret string
 
 func init() {
 	lr = lineRequest{}
-	channelSecret = "6952513badb650d5cf9c14a3c79cd8c8"
+	channelSecret = "<Your Channel Secret>"
 }
 func indexHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
