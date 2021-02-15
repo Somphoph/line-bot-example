@@ -44,7 +44,7 @@ func msgHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !lr.validateXLineSignature(r) {
-		log.Printf(`"message":"XLineSignature validate fail."`)
+		fmt.Printf(`"message":"XLineSignature validate fail."`)
 		http.Error(w, "XLineSignature validate fail.", http.StatusBadRequest)
 		return
 	}
